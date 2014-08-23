@@ -54,6 +54,8 @@ You can then expand the list of operations & invoke them accordingly.
 
 Next steps
 ----------
-I'll go ahead and start modifying a fork of go-restful/swagger, to do the same thing but without actually setting up dummy routes. But first I'll start a discussion with the creators of both projects.
+I'll go ahead and start modifying a fork of go-restful/swagger, to do the same thing but without actually setting up dummy routes. I'll also make it more concise than this.
 
+First I'll start a discussion with the creators of both projects, and go from there. 
 
+You can use this if you like, but it's not recommended for production use. Cheers.
