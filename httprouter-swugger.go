@@ -11,16 +11,14 @@ import (
 type HttpRouterSwagger struct {
 	HttpRouter *httprouter.Router
 	GoRestfulContainer *restful.Container
-	GoRestfulWebService *restful.WebService
+	GoRestfulWebServices []*restful.WebService
 	SwaggerConfig *swagger.Config
 }
+
+//Not sure if this should have defaults or not, but it feels like there should be recommended swagger uri accross implementations.
 func (hrs *HttpRouterSwagger) Init(webServiceAddr string) {
-	hrs.HttpRouter = httprouter.New()
 	hrs.GoRestfulContainer = restful.NewContainer()
-	hrs.GoRestfulWebService = new(restful.WebService)
-	hrs.GoRestfulContainer.Add(hrs.GoRestfulWebService)
 	hrs.SwaggerConfig = &swagger.Config{
-		WebServices:    hrs.GoRestfulContainer.RegisteredWebServices(),
 		WebServicesUrl: webServiceAddr,
 		ApiPath:        "/doc/apidocs.json",
 		// Optionally, specifiy where the UI is located
@@ -28,17 +26,28 @@ func (hrs *HttpRouterSwagger) Init(webServiceAddr string) {
 		SwaggerFilePath: "../swagger-ui/dist"}
 
 }
-func NewHRS(webServiceAddr string) *HttpRouterSwagger {
+func NewHRS(webServiceAddr string, httpRouter *httprouter.Router) *HttpRouterSwagger {
 	hrs := &HttpRouterSwagger{}
 	hrs.Init(webServiceAddr)
+	hrs.HttpRouter = httpRouter
 	return hrs
 }
 
+func (hrs *HttpRouterSwagger) AddService(path string, serviceDoc ServiceDoc) *restful.WebService {
+	ws := new(restful.WebService)
+	ws.Path(path).
+		Doc(serviceDoc.Doc).
+		Consumes(serviceDoc.Consumes...).
+		Produces(serviceDoc.Produces...)
+	hrs.GoRestfulContainer.Add(ws)
+	//update
+	hrs.SwaggerConfig.WebServices =  hrs.GoRestfulContainer.RegisteredWebServices()
 
-func (hrs *HttpRouterSwagger) AddRoute(method string, path string, function httprouter.Handle) *restful.RouteBuilder {
+	return ws
+}
+
+func (hrs *HttpRouterSwagger) AddRoute(ws *restful.WebService, method string, path string, function httprouter.Handle, methodDoc MethodDoc) *restful.RouteBuilder {
 	hrs.HttpRouter.Handle(method, path, function)
-	ws := hrs.GoRestfulWebService
-
 	pathGoRestful := path
 	pathParts := strings.Split(path, ":")
 	if len(pathParts) > 1 {
@@ -58,6 +67,24 @@ func (hrs *HttpRouterSwagger) AddRoute(method string, path string, function http
 		// just reject it.
 		resp.WriteErrorString(http.StatusNotFound, "Page not found")
 		})
+	if methodDoc.Operation != "" {
+		rb.Operation(methodDoc.Operation)
+	}
+	if methodDoc.Doc != "" {
+		rb.Doc(methodDoc.Doc)
+	}
+	if methodDoc.Writes != nil {
+		rb.Writes(methodDoc.Writes)
+	}
+	if methodDoc.Reads != nil {
+		rb.Reads(methodDoc.Reads)
+	}
+	if methodDoc.Params != nil {
+		for _, p := range methodDoc.Params {
+			ws.PathParameter(p.Name, p.Doc).DataType(p.DataType)
+		}
+	}
+	ws.Route(rb)
 	return rb
 }
 

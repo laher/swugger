@@ -24,25 +24,26 @@ type greeting struct {}
 
 
 func main() {
-	hrs := swugger.NewHRS("http://localhost:8080")
-	hrs.GoRestfulWebService.
-		Path("/").
-		Doc("Hello API").
-		Consumes(restful.MIME_XML, restful.MIME_JSON).
-		Produces(restful.MIME_JSON, restful.MIME_XML)
-	rb := hrs.AddRoute("GET", "/hello", generalGreeting).
-		Operation("generalGreeting").
-		Doc("General greeting").
-		Writes(greeting{})
-	hrs.GoRestfulWebService.Route(rb)
-	rb = hrs.AddRoute("GET", "/hello/:name", personalGreeting).
-		Operation("personalGreeting").
-		Doc("personal greeting, with a name").
-		Param(hrs.GoRestfulWebService.PathParameter("name", "identifier of the user").DataType("string")).
-		Writes(greeting{})
-	hrs.GoRestfulWebService.Route(rb)
+	httpRouter := httprouter.New()
+	hrs := swugger.NewHRS("http://localhost:8080", httpRouter)
+	//I've amended the api to use 'Doc' structs. It feels more 'go'-like
+	ws := hrs.AddService("/", swugger.ServiceDoc{"Hello API", []string{restful.MIME_XML, restful.MIME_JSON}, []string{restful.MIME_JSON, restful.MIME_XML}})
+	//this would preferably be a call on 'ws'
+	hrs.AddRoute(ws, "GET", "/hello", generalGreeting, swugger.MethodDoc {
+		Operation: "generalGreeting",
+		Doc: "General greeting",
+		Writes: greeting{}})
+	hrs.AddRoute(ws, "GET", "/hello/:name", personalGreeting, swugger.MethodDoc {
+		Operation: "personalGreeting",
+		Doc: "personal greeting, with a name",
+		Params: []swugger.ParamDoc{ swugger.ParamDoc{Name:"name", Doc:"identifier of the user",
+			DataType: "string"}},
+			Writes: greeting{} })
+	//this call would probably be unneccessary in a swagger-only library
 	swagger.RegisterSwaggerService(*hrs.SwaggerConfig, hrs.GoRestfulContainer)
+	//perhaps this should be automatic too based on the SwaggerConfig
 	http.Handle("/doc/", hrs.GoRestfulContainer)
+
 	http.Handle("/", hrs.HttpRouter)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
