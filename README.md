@@ -1,7 +1,7 @@
 swugger
 ======
 
-This proof-of-concept repo is just meant as to start a discussion about swagger support for httprouter (and others) based on the swagger support in go-restful/swagger.
+This proof-of-concept repo is just here to start a discussion about swagger support for httprouter (and others) based on the swagger support in go-restful/swagger.
 
 In the near future I'd like to create a new repo, forked from go-restful, and stripped back to provide swagger support for other routers.
 
