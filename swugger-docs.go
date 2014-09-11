@@ -15,6 +15,7 @@ type MethodDoc struct {
 }
 
 type ParamDoc struct {
+	Type string
 	Name string
 	Doc string
 	DataType string

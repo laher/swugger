@@ -46,6 +46,7 @@ func (hrs *HttpRouterSwagger) AddService(path string, serviceDoc ServiceDoc) *re
 	return ws
 }
 
+
 func (hrs *HttpRouterSwagger) AddRoute(ws *restful.WebService, method string, path string, function httprouter.Handle, methodDoc MethodDoc) *restful.RouteBuilder {
 	hrs.HttpRouter.Handle(method, path, function)
 	pathGoRestful := path
@@ -81,7 +82,15 @@ func (hrs *HttpRouterSwagger) AddRoute(ws *restful.WebService, method string, pa
 	}
 	if methodDoc.Params != nil {
 		for _, p := range methodDoc.Params {
-			ws.PathParameter(p.Name, p.Doc).DataType(p.DataType)
+			switch p.Type {
+			case "header":
+				param := ws.HeaderParameter(p.Name, p.Doc).DataType(p.DataType).Required(true)
+				rb.Param(param)
+			default:
+				param := ws.PathParameter(p.Name, p.Doc).DataType(p.DataType)
+				rb.Param(param)
+			}
+			
 		}
 	}
 	ws.Route(rb)
