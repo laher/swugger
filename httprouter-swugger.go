@@ -13,6 +13,7 @@ type HttpRouterSwagger struct {
 	GoRestfulContainer *restful.Container
 	GoRestfulWebServices []*restful.WebService
 	SwaggerConfig *swagger.Config
+	isSwaggerServiceRegistered bool
 }
 
 //Not sure if this should have defaults or not, but it feels like there should be recommended swagger uri accross implementations.
@@ -44,6 +45,18 @@ func (hrs *HttpRouterSwagger) AddService(path string, serviceDoc ServiceDoc) *re
 	hrs.SwaggerConfig.WebServices =  hrs.GoRestfulContainer.RegisteredWebServices()
 
 	return ws
+}
+
+func (hrs *HttpRouterSwagger) GetSwaggerHandler() http.Handler {
+	if !hrs.isSwaggerServiceRegistered {
+		hrs.RegisterSwaggerService()
+		hrs.isSwaggerServiceRegistered = true
+	}
+	return hrs.GoRestfulContainer
+}
+
+func (hrs *HttpRouterSwagger) RegisterSwaggerService() {
+	swagger.RegisterSwaggerService(*hrs.SwaggerConfig, hrs.GoRestfulContainer)
 }
 
 

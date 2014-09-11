@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful/swagger"
 	"github.com/laher/swugger"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
+	"mime"
 
 )
 
@@ -27,7 +26,7 @@ func main() {
 	httpRouter := httprouter.New()
 	hrs := swugger.NewHRS("http://localhost:8080", httpRouter)
 	//I've amended the api to use 'Doc' structs. It feels more 'go'-like
-	ws := hrs.AddService("/", swugger.ServiceDoc{"Hello API", []string{restful.MIME_XML, restful.MIME_JSON}, []string{restful.MIME_JSON, restful.MIME_XML}})
+	ws := hrs.AddService("/", swugger.ServiceDoc{"Hello API", []string{mime.TypeByExtension(".xml"), mime.TypeByExtension(".json")}, []string{mime.TypeByExtension(".xml"), mime.TypeByExtension(".json")}})
 	//this would preferably be a call on 'ws'
 	hrs.AddRoute(ws, "GET", "/hello", generalGreeting, swugger.MethodDoc {
 		Operation: "generalGreeting",
@@ -39,12 +38,10 @@ func main() {
 		Params: []swugger.ParamDoc{ swugger.ParamDoc{Name:"name", Doc:"identifier of the user",
 			DataType: "string"}},
 			Writes: greeting{} })
-	//this call would probably be unneccessary in a swagger-only library
-	swagger.RegisterSwaggerService(*hrs.SwaggerConfig, hrs.GoRestfulContainer)
-	//perhaps this should be automatic too based on the SwaggerConfig
-	http.Handle("/doc/", hrs.GoRestfulContainer)
+	http.Handle("/doc/", hrs.GetSwaggerHandler())
 
 	http.Handle("/", hrs.HttpRouter)
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
