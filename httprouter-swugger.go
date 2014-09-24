@@ -11,7 +11,7 @@ import (
 type HttpRouterSwagger struct {
 	HttpRouter *httprouter.Router
 	GoRestfulContainer *restful.Container
-	GoRestfulWebServices []*restful.WebService
+	//GoRestfulWebServices []*restful.WebService
 	SwaggerConfig *swagger.Config
 	isSwaggerServiceRegistered bool
 }
@@ -34,8 +34,16 @@ func NewHRS(webServiceAddr string, httpRouter *httprouter.Router) *HttpRouterSwa
 	return hrs
 }
 
-func (hrs *HttpRouterSwagger) AddService(path string, serviceDoc ServiceDoc) *restful.WebService {
+//wrapper for restful.WebService
+type WebService struct {
+	*restful.WebService
+	Hrs *HttpRouterSwagger
+	Path string
+}
+
+func (hrs *HttpRouterSwagger) AddService(path string, serviceDoc ServiceDoc) *WebService {
 	ws := new(restful.WebService)
+	mws := &WebService{ws, hrs, path}
 	ws.Path(path).
 		Doc(serviceDoc.Doc).
 		Consumes(serviceDoc.Consumes...).
@@ -44,7 +52,7 @@ func (hrs *HttpRouterSwagger) AddService(path string, serviceDoc ServiceDoc) *re
 	//update
 	hrs.SwaggerConfig.WebServices =  hrs.GoRestfulContainer.RegisteredWebServices()
 
-	return ws
+	return mws
 }
 
 func (hrs *HttpRouterSwagger) GetSwaggerHandler() http.Handler {
@@ -59,9 +67,13 @@ func (hrs *HttpRouterSwagger) RegisterSwaggerService() {
 	swagger.RegisterSwaggerService(*hrs.SwaggerConfig, hrs.GoRestfulContainer)
 }
 
+func (hrs *HttpRouterSwagger) AddRoute(ws *WebService, method string, path string, function httprouter.Handle, methodDoc MethodDoc) *restful.RouteBuilder {
+	return ws.AddRoute(method, path, function, methodDoc)
+}
 
-func (hrs *HttpRouterSwagger) AddRoute(ws *restful.WebService, method string, path string, function httprouter.Handle, methodDoc MethodDoc) *restful.RouteBuilder {
-	hrs.HttpRouter.Handle(method, path, function)
+func (ws *WebService) AddRoute(method string, path string, function httprouter.Handle, methodDoc MethodDoc) *restful.RouteBuilder {
+	fullPath := ws.Path + path
+	ws.Hrs.HttpRouter.Handle(method, fullPath, function)
 	pathGoRestful := path
 	pathParts := strings.Split(path, ":")
 	if len(pathParts) > 1 {
@@ -99,11 +111,16 @@ func (hrs *HttpRouterSwagger) AddRoute(ws *restful.WebService, method string, pa
 			case "header":
 				param := ws.HeaderParameter(p.Name, p.Doc).DataType(p.DataType).Required(true)
 				rb.Param(param)
+			case "query":
+				param := ws.QueryParameter(p.Name, p.Doc).DataType(p.DataType)
+				rb.Param(param)
+			case "form":
+				param := ws.FormParameter(p.Name, p.Doc).DataType(p.DataType)
+				rb.Param(param)
 			default:
 				param := ws.PathParameter(p.Name, p.Doc).DataType(p.DataType)
 				rb.Param(param)
 			}
-			
 		}
 	}
 	ws.Route(rb)
