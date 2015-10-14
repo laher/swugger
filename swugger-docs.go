@@ -9,6 +9,7 @@ type ServiceDoc struct {
 type MethodDoc struct {
 	Operation string
 	Doc string
+	Notes string
 	Params []ParamDoc
 	Reads interface{}
 	Writes interface{}
