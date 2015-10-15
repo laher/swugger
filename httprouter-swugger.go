@@ -99,6 +99,9 @@ func (ws *WebService) AddRoute(method string, path string, function httprouter.H
 	if methodDoc.Doc != "" {
 		rb.Doc(methodDoc.Doc)
 	}
+	if methodDoc.Notes != "" {
+		rb.Notes(methodDoc.Notes)
+	}
 	if methodDoc.Writes != nil {
 		rb.Writes(methodDoc.Writes)
 	}
